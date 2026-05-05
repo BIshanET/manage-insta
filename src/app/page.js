@@ -1,9 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Send, Trash2, Camera, Plus, Loader2 } from 'lucide-react';
+import { Send, Trash2, Camera, Plus, Loader2, LogOut, User } from 'lucide-react';
+import { signOut, useSession } from 'next-auth/react';
+
 
 export default function Home() {
+  const { data: session } = useSession();
+  const [activeTab, setActiveTab] = useState('queue');
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -85,7 +89,22 @@ export default function Home() {
     <main>
       <header style={{ textAlign: 'center', marginBottom: '3rem' }}>
         <h1 className="animate-fade">Instagram Post Manager</h1>
-        <p style={{ color: 'var(--text-dim)' }}>Plan and publish your content seamlessly</p>
+        <p style={{ color: 'var(--text-dim)', marginBottom: '1.5rem' }}>Plan and publish your content seamlessly</p>
+        
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', alignItems: 'center' }}>
+          <div className="glass" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '50px', fontSize: '0.9rem' }}>
+            <User size={16} />
+            <span>{session?.user?.name || 'Loading...'}</span>
+          </div>
+          <button 
+            onClick={() => signOut()} 
+            className="btn-delete" 
+            style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '50px', background: 'rgba(255, 59, 48, 0.1)', color: '#ff3b30', border: '1px solid rgba(255, 59, 48, 0.2)' }}
+          >
+            <LogOut size={16} />
+            Logout
+          </button>
+        </div>
       </header>
 
       <div className="glass form-container animate-fade">
@@ -128,18 +147,61 @@ export default function Home() {
       </div>
 
       <section>
-        <h2 style={{ marginBottom: '1.5rem', fontSize: '1.5rem' }}>Your Queue</h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: '1.5rem' }}>{activeTab === 'queue' ? 'Your Queue' : 'Published Posts'}</h2>
+          <div className="glass" style={{ display: 'flex', padding: '4px', borderRadius: '12px', gap: '4px' }}>
+            <button 
+              onClick={() => setActiveTab('queue')}
+              style={{ 
+                padding: '8px 16px', 
+                borderRadius: '8px', 
+                border: 'none', 
+                cursor: 'pointer',
+                background: activeTab === 'queue' ? 'var(--primary)' : 'transparent',
+                color: activeTab === 'queue' ? 'white' : 'var(--text-dim)',
+                transition: 'all 0.2s'
+              }}
+            >
+              Queue
+            </button>
+            <button 
+              onClick={() => setActiveTab('published')}
+              style={{ 
+                padding: '8px 16px', 
+                borderRadius: '8px', 
+                border: 'none', 
+                cursor: 'pointer',
+                background: activeTab === 'published' ? 'var(--primary)' : 'transparent',
+                color: activeTab === 'published' ? 'white' : 'var(--text-dim)',
+                transition: 'all 0.2s'
+              }}
+            >
+              Published
+            </button>
+          </div>
+        </div>
+
         {loading ? (
           <div style={{ textAlign: 'center', padding: '3rem' }}>
             <Loader2 size={40} className="spin" style={{ color: 'var(--primary)' }} />
           </div>
-        ) : posts.length === 0 ? (
-          <div className="glass" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-dim)' }}>
-            No posts in queue yet. Start by adding one above!
-          </div>
         ) : (
-          <div className="posts-grid">
-            {posts.map((post) => (
+          (() => {
+            const filteredPosts = posts.filter(post => 
+              activeTab === 'published' ? post.status === 'published' : post.status !== 'published'
+            );
+
+            if (filteredPosts.length === 0) {
+              return (
+                <div className="glass" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-dim)' }}>
+                  {activeTab === 'queue' ? 'No posts in queue yet.' : 'No published posts yet.'}
+                </div>
+              );
+            }
+
+            return (
+              <div className="posts-grid">
+                {filteredPosts.map((post) => (
               <div key={post._id} className="glass post-card animate-fade">
                 <img src={post.imageUrl} alt="Post" className="post-image" onError={(e) => e.target.src = 'https://via.placeholder.com/400x400?text=Invalid+Image+URL'} />
                 <div className="post-content">
@@ -168,7 +230,9 @@ export default function Home() {
                 </div>
               </div>
             ))}
-          </div>
+              </div>
+            );
+          })()
         )}
       </section>
 
