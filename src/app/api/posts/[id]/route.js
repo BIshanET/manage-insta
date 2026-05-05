@@ -5,7 +5,7 @@ import Post from '@/models/Post';
 export async function DELETE(request, { params }) {
   try {
     await dbConnect();
-    const { id } = params;
+    const { id } =await  params;
     const deletedPost = await Post.findByIdAndDelete(id);
     
     if (!deletedPost) {
