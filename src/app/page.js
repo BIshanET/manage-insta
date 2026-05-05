@@ -1,18 +1,40 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Send, Trash2, Camera, Plus, Loader2, LogOut, User } from 'lucide-react';
-import { signOut, useSession } from 'next-auth/react';
-
+import { Send, Trash2, Camera, Plus, Loader2, LogOut, Lock, ArrowRight } from 'lucide-react';
 
 export default function Home() {
-  const { data: session } = useSession();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passInput, setPassInput] = useState('');
   const [activeTab, setActiveTab] = useState('queue');
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ imageUrl: '', caption: '' });
   const [message, setMessage] = useState({ text: '', type: '' });
+
+  // Security Check
+  useEffect(() => {
+    const savedSecret = localStorage.getItem('login_secret');
+    if (savedSecret === process.env.NEXT_PUBLIC_LOGIN_SECRET) {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (passInput === process.env.NEXT_PUBLIC_LOGIN_SECRET) {
+      localStorage.setItem('login_secret', passInput);
+      setIsAuthenticated(true);
+    } else {
+      alert('Invalid Password');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('login_secret');
+    setIsAuthenticated(false);
+  };
 
   const fetchPosts = async () => {
     try {
@@ -27,8 +49,10 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchPosts();
-  }, []);
+    if (isAuthenticated) {
+      fetchPosts();
+    }
+  }, [isAuthenticated]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -85,6 +109,36 @@ export default function Home() {
     }
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-dark)' }}>
+        <div className="glass" style={{ padding: '3rem', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+          <div style={{ background: 'var(--primary)', width: '64px', height: '64px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+            <Lock color="white" size={32} />
+          </div>
+          <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Protected Access</h1>
+          <p style={{ color: 'var(--text-dim)', marginBottom: '2rem', fontSize: '0.9rem' }}>Please enter your secret to continue</p>
+          <form onSubmit={handleLogin}>
+            <div className="input-group">
+              <input 
+                type="password" 
+                placeholder="Enter Secret Key"
+                value={passInput}
+                onChange={(e) => setPassInput(e.target.value)}
+                style={{ textAlign: 'center' }}
+                autoFocus
+              />
+            </div>
+            <button type="submit" className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <ArrowRight size={20} />
+              Unlock Dashboard
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main>
       <header style={{ textAlign: 'center', marginBottom: '3rem' }}>
@@ -93,11 +147,11 @@ export default function Home() {
         
         <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', alignItems: 'center' }}>
           <div className="glass" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '50px', fontSize: '0.9rem' }}>
-            <User size={16} />
-            <span>{session?.user?.name || 'Loading...'}</span>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#30d158' }}></span>
+            <span>Authenticated</span>
           </div>
           <button 
-            onClick={() => signOut()} 
+            onClick={handleLogout} 
             className="btn-delete" 
             style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '50px', background: 'rgba(255, 59, 48, 0.1)', color: '#ff3b30', border: '1px solid rgba(255, 59, 48, 0.2)' }}
           >
@@ -202,40 +256,39 @@ export default function Home() {
             return (
               <div className="posts-grid">
                 {filteredPosts.map((post) => (
-              <div key={post._id} className="glass post-card animate-fade">
-                <img src={post.imageUrl} alt="Post" className="post-image" onError={(e) => e.target.src = 'https://via.placeholder.com/400x400?text=Invalid+Image+URL'} />
-                <div className="post-content">
-                  <span className={`status-badge status-${post.status}`}>
-                    {post.status}
-                  </span>
-                  <p className="post-caption">{post.caption}</p>
-                  <div className="post-actions">
-                    <button 
-                      className="btn-publish" 
-                      onClick={() => publishPost(post._id)}
-                      disabled={post.status === 'published'}
-                      style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                    >
-                      <Send size={16} />
-                      {post.status === 'published' ? 'Published' : 'Publish'}
-                    </button>
-                    <button 
-                      className="btn-delete" 
-                      onClick={() => deletePost(post._id)}
-                      title="Delete"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                  <div key={post._id} className="glass post-card animate-fade">
+                    <img src={post.imageUrl} alt="Post" className="post-image" onError={(e) => e.target.src = 'https://via.placeholder.com/400x400?text=Invalid+Image+URL'} />
+                    <div className="post-content">
+                      <span className={`status-badge status-${post.status}`}>
+                        {post.status}
+                      </span>
+                      <p className="post-caption">{post.caption}</p>
+                      <div className="post-actions">
+                        <button 
+                          className="btn-publish" 
+                          onClick={() => publishPost(post._id)}
+                          disabled={post.status === 'published'}
+                          style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                        >
+                          <Send size={16} />
+                          {post.status === 'published' ? 'Published' : 'Publish'}
+                        </button>
+                        <button 
+                          className="btn-delete" 
+                          onClick={() => deletePost(post._id)}
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                ))}
               </div>
             );
           })()
         )}
       </section>
-
     </main>
   );
 }
