@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, Loader2, ArrowRight, Camera } from 'lucide-react';
+import { Loader2, ArrowRight, Camera } from 'lucide-react';
 
-export default function SignInPage() {
+function SignInForm() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,6 +38,47 @@ export default function SignInPage() {
     }
   };
 
+  return (
+    <>
+      {error && <div className="error-message">{error}</div>}
+
+      <form onSubmit={handleSubmit}>
+        <div className="input-wrapper">
+          <span className="label">Email Address</span>
+          <div className="input-container">
+            <input
+              type="email"
+              placeholder="name@company.com"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              required
+            />
+          </div>
+        </div>
+
+        <div className="input-wrapper">
+          <span className="label">Password</span>
+          <div className="input-container">
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+            />
+          </div>
+        </div>
+
+        <button type="submit" className="login-button" disabled={loading}>
+          {loading ? <Loader2 className="spin" size={20} /> : <ArrowRight size={20} />}
+          {loading ? 'Signing in...' : 'Sign In'}
+        </button>
+      </form>
+    </>
+  );
+}
+
+export default function SignInPage() {
   return (
     <div className="login-page">
       <style jsx>{`
@@ -102,11 +143,11 @@ export default function SignInPage() {
           font-size: 0.95rem;
         }
 
-        .input-wrapper {
+        :global(.input-wrapper) {
           margin-bottom: 1.25rem;
         }
 
-        .label {
+        :global(.label) {
           display: block;
           font-size: 0.85rem;
           font-weight: 600;
@@ -115,37 +156,29 @@ export default function SignInPage() {
           padding-left: 0.5rem;
         }
 
-        .input-container {
+        :global(.input-container) {
           position: relative;
         }
 
-        .input-container input {
+        :global(.input-container input) {
           width: 100%;
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 14px;
-          padding: 12px 16px 12px 48px;
+          padding: 12px 16px;
           color: white;
           font-size: 1rem;
           transition: all 0.2s;
         }
 
-        .input-container input:focus {
+        :global(.input-container input:focus) {
           outline: none;
           background: rgba(255, 255, 255, 0.1);
           border-color: rgba(255, 255, 255, 0.3);
           box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
         }
 
-        .input-icon {
-          position: absolute;
-          left: 16px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: rgba(255, 255, 255, 0.3);
-        }
-
-        .login-button {
+        :global(.login-button) {
           width: 100%;
           background: white;
           color: black;
@@ -163,21 +196,21 @@ export default function SignInPage() {
           transition: all 0.2s;
         }
 
-        .login-button:hover:not(:disabled) {
+        :global(.login-button:hover:not(:disabled)) {
           transform: translateY(-2px);
           box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
         }
 
-        .login-button:active:not(:disabled) {
+        :global(.login-button:active:not(:disabled)) {
           transform: translateY(0);
         }
 
-        .login-button:disabled {
+        :global(.login-button:disabled) {
           opacity: 0.7;
           cursor: not-allowed;
         }
 
-        .error-message {
+        :global(.error-message) {
           background: rgba(255, 59, 48, 0.1);
           border: 1px solid rgba(255, 59, 48, 0.2);
           color: #ff453a;
@@ -201,7 +234,7 @@ export default function SignInPage() {
           font-weight: 600;
         }
 
-        .spin { animation: spin 1s linear infinite; }
+        :global(.spin) { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
 
@@ -213,40 +246,13 @@ export default function SignInPage() {
         <h1 className="title">Welcome Back</h1>
         <p className="subtitle">Login to manage your Instagram posts</p>
 
-        {error && <div className="error-message">{error}</div>}
-
-        <form onSubmit={handleSubmit}>
-          <div className="input-wrapper">
-            <span className="label">Email Address</span>
-            <div className="input-container">
-              <input
-                type="email"
-                placeholder="name@company.com"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required
-              />
-            </div>
+        <Suspense fallback={
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <Loader2 className="spin" size={32} style={{ color: 'white', opacity: 0.5 }} />
           </div>
-
-          <div className="input-wrapper">
-            <span className="label">Password</span>
-            <div className="input-container">
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required
-              />
-            </div>
-          </div>
-
-          <button type="submit" className="login-button" disabled={loading}>
-            {loading ? <Loader2 className="spin" size={20} /> : <ArrowRight size={20} />}
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+        }>
+          <SignInForm />
+        </Suspense>
 
         <div className="footer">
           By signing in, you agree to our <a href="#">Terms of Service</a>
